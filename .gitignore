@@ -1,0 +1,9 @@
+frontend/node_modules
+backend/frontend
+*.pyc
+.env
+dist/
+app-mac
+.DS_Store
+.vscode/
+.devcontainer/
