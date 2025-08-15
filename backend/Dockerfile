@@ -1,6 +1,6 @@
 # Stage 1: Build the frontend
 FROM node:18-alpine AS frontend-builder
-WORKDIR /app/frontend
+WORKDIR frontend
 # Install git to clone the model repo
 RUN apk --no-cache add git git-lfs
 COPY frontend/package*.json ./
