@@ -2,15 +2,16 @@ package main
 
 import (
 	"bytes"
-	// "embed"
+	"embed"
 	"encoding/json"
 	"fmt"
 	"io"
-	// "io/fs"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
+
+	// "path/filepath"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -41,7 +42,8 @@ type LLMResponse struct {
 	} `json:"choices"`
 }
 
-// var frontendFS embed.FS
+//go:embed statics
+var frontendFS embed.FS
 
 func main() {
 	r := gin.Default()
@@ -71,19 +73,35 @@ func main() {
 	r.POST("/api/explain-word", explainWordHandler)
 	r.POST("/api/translate-sentence", translateSentenceHandler)
 
-	// frontendDist, err := fs.Sub(frontendFS, "frontend/dist")
-	// if err != nil {
-	// 	log.Fatal("Failed to get frontend/dist subdirectory:", err)
-	// }
+	frontendDist, err := fs.Sub(frontendFS, "statics")
+	if err != nil {
+		log.Fatal("Failed to get frontend/dist subdirectory:", err)
+	}
 
-	// Serve frontend static files
-	r.StaticFS("/assets", http.Dir("frontend/dist/assets"))
-	r.StaticFS("/models", http.Dir("frontend/dist/models"))
-	r.StaticFS("/wasm", http.Dir("frontend/dist/wasm"))
-  
+	// Debug: List embedded files
+	log.Println("Embedded files:")
+	err = fs.WalkDir(frontendDist, ".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() {
+			log.Printf("  %s", path)
+		}
+		return nil
+	})
+	if err != nil {
+		log.Printf("Error walking embedded files: %v", err)
+	}
+
+	// Create a file server for the embedded frontend
+	fileServer := http.FileServer(http.FS(frontendDist))
+
+	// Serve static files and handle SPA routing
 	r.NoRoute(func(c *gin.Context) {
 		if !strings.HasPrefix(c.Request.RequestURI, "/api") {
-			c.File(filepath.Join("frontend/dist", "index.html"))
+			log.Printf("Serving frontend file: %s", c.Request.URL.Path)
+			// Try to serve the requested file
+			fileServer.ServeHTTP(c.Writer, c.Request)
 		}
 	})
 
@@ -212,8 +230,8 @@ func fetchLLMResponse(prompt string, llmSettings map[string]interface{}) (string
 			{"role": "system", "content": "You are an experienced language tutor, you are good at translate and explain the words and phrases in context"},
 			{"role": "user", "content": prompt},
 		},
-		"temperature": 0.7,
-    "enable_thinking": false,
+		"temperature":     0.7,
+		"enable_thinking": false,
 	}
 
 	jsonPayload, err := json.Marshal(payload)
@@ -253,4 +271,4 @@ func fetchLLMResponse(prompt string, llmSettings map[string]interface{}) (string
 	}
 
 	return "", fmt.Errorf("could not parse LLM response")
-} 
+}

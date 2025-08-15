@@ -1,1 +1,1 @@
-cd frontend && npm run build && cd .. && cp -r frontend/dist/* backend-go/frontend/dist && cp -r models/* backend-go/frontend/dist/models && cp -r wasm/* backend-go/frontend/dist/wasm
+cd frontend && npm run build && cd .. && cp -r frontend/dist/* backend-go/statics && cp -r models/* backend-go/statics/models && cp -r wasm/* backend-go/statics/wasm
